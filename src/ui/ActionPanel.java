@@ -22,7 +22,7 @@ public class ActionPanel extends JPanel implements Runnable {
         setPreferredSize(new Dimension(x, y));
         this.setFocusable(true);
         this.allObjects = new ArrayList<Rectangle>();
-        this.quadTree = new QuadTree(0, new Rectangle(0, 0, x, y));
+        this.quadTree = new QuadTree(0, new Rectangle(0, 0, x - 8, y - 24));
 
         this.addMouseListener(new MouseAdapter() {
             @Override
@@ -88,8 +88,10 @@ public class ActionPanel extends JPanel implements Runnable {
     }
 
     private void update() {
+        handleCollisions();
         quadTree.clear();
         for (Rectangle object : allObjects) {
+            checkBounds(object, quadTree.bounds);
             object.move();
             quadTree.insert(object);
         }
@@ -99,11 +101,96 @@ public class ActionPanel extends JPanel implements Runnable {
         List<Rectangle> returnObjects = new ArrayList<Rectangle>();
         for (Rectangle object : allObjects) {
             returnObjects.clear();
-            quadTree.check(returnObjects, object);
+            quadTree.retrieve(returnObjects, object);
+
+            for (Rectangle returnObject : returnObjects) {
+                if (object == null || returnObject == null || object == returnObject) {
+                    continue;
+                }
+                checkCollision(object, returnObject);
+            }
         }
-        for (Rectangle object : returnObjects) {
-            // Run collision detection
+    }
+
+    private void checkCollision(Rectangle a, Rectangle b) {
+        if (a == null || a == b) {
             return;
+        } else {
+            int aDir = a.getDirection();
+            int bDir = b.getDirection();
+
+            if (pointInsideRect(a.getX(), a.getY(), b) ||
+                pointInsideRect(a.getX(), a.getY() + a.getHeight(), b) ||
+                pointInsideRect(a.getX() + a.getWidth(), a.getY(), b) ||
+                pointInsideRect(a.getX() + a.getWidth(), a.getY() + a.getHeight(), b)) {
+
+                a.setDirection(bDir);
+                b.setDirection(aDir);
+            }
+        }
+    }
+
+    private boolean pointInsideRect(int x, int y, Rectangle rect) {
+        if (x > rect.getX() && x < rect.getX() + rect.getWidth() &&
+            y > rect.getY() && y < rect.getY() + rect.getHeight()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private void checkBounds(Rectangle a, Rectangle b) {
+        if (a.getX() < b.getX()) {
+            switch (a.getDirection()) {
+                case Constants.DOWNLEFT:
+                    a.setDirection(Constants.DOWNRIGHT);
+                    break;
+                case Constants.LEFT:
+                    a.setDirection(Constants.RIGHT);
+                    break;
+                case Constants.UPLEFT:
+                    a.setDirection(Constants.UPRIGHT);
+                    break;
+            }
+        }
+        if (a.getY() < b.getY()) {
+            switch (a.getDirection()) {
+                case Constants.UPLEFT:
+                    a.setDirection(Constants.DOWNLEFT);
+                    break;
+                case Constants.UP:
+                    a.setDirection(Constants.DOWN);
+                    break;
+                case Constants.UPRIGHT:
+                    a.setDirection(Constants.DOWNRIGHT);
+                    break;
+            }
+        }
+        if (a.getX() + a.getWidth() > b.getWidth()) {
+            switch (a.getDirection()) {
+                case Constants.DOWNRIGHT:
+                    a.setDirection(Constants.DOWNLEFT);
+                    break;
+                case Constants.RIGHT:
+                    a.setDirection(Constants.LEFT);
+                    break;
+                case Constants.UPRIGHT:
+                    a.setDirection(Constants.UPLEFT);
+                    break;
+            }
+        }
+        if (a.getY() + a.getHeight() > b.getHeight()) {
+            switch (a.getDirection()) {
+                case Constants.DOWNLEFT:
+                    a.setDirection(Constants.UPLEFT);
+                    break;
+                case Constants.DOWN:
+                    a.setDirection(Constants.UP);
+                    break;
+                case Constants.DOWNRIGHT:
+                    a.setDirection(Constants.UPRIGHT);
+                    break;
+            }
         }
     }
 }

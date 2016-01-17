@@ -9,7 +9,7 @@ public class QuadTree {
     private int max_levels = 5;
     private int level;
     private List<Rectangle> objects;
-    private Rectangle bounds;
+    public Rectangle bounds;
     private QuadTree[] nodes;
 
     public QuadTree(int level, Rectangle bounds) {
@@ -45,11 +45,11 @@ public class QuadTree {
         }
     }
 
-    public List<Rectangle> check(List<Rectangle> returnObjects, Rectangle rect) {
+    public List<Rectangle> retrieve(List<Rectangle> returnObjects, Rectangle rect) {
         // Return all objects that could collide with given object
         int index = getIndex(rect);
         if  (index != -1 && nodes[0] != null) {
-            nodes[index].check(returnObjects, rect);
+            nodes[index].retrieve(returnObjects, rect);
         }
         returnObjects.addAll(objects);
         return returnObjects;

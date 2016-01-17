@@ -5,9 +5,19 @@ import java.awt.*;
 public class Constants {
     private Constants() {}
 
-    public static final int SCREEN_X = 800;
-    public static final int SCREEN_Y = 800;
+    public static final int SCREEN_X    = 800;
+    public static final int SCREEN_Y    = 800;
     public static final int OBJECT_SIZE = 20;
+
+    public static final int DOWNLEFT  = 0;
+    public static final int DOWN      = 1;
+    public static final int DOWNRIGHT = 2;
+    public static final int LEFT      = 3;
+    public static final int RIGHT     = 4;
+    public static final int UPLEFT    = 5;
+    public static final int UP        = 6;
+    public static final int UPRIGHT   = 7;
+    public static final int MOVESPEED = 2;
 
     public static final Color BACKGROUND_COLOR = new Color(0x2c3e50);
     public static final Color BORDER_COLOR = new Color(0x34495e);
