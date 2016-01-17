@@ -27,8 +27,8 @@ public class Mainframe implements Runnable {
     }
 
     private void createComponents(Container container) {
-        // SimulationPanel panel = new SimulationPanel(width, height);
-        // container.add(panel);
-        // panel.start();
+        ActionPanel panel = new ActionPanel(width, height);
+        container.add(panel);
+        panel.start();
     }
 }
