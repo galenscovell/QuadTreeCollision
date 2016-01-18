@@ -43,6 +43,12 @@ public class ActionPanel extends JPanel implements Runnable {
         });
     }
 
+    public synchronized void start() {
+        this.thread = new Thread(this, "Pathfinder");
+        running = true;
+        thread.start(); // call run()
+    }
+
     public void run() {
         long start, end, sleepTime;
 
@@ -63,41 +69,6 @@ public class ActionPanel extends JPanel implements Runnable {
         }
     }
 
-    public synchronized void start() {
-        this.thread = new Thread(this, "Pathfinder");
-        running = true;
-        thread.start(); // call run()
-    }
-
-    public synchronized void stop() {
-        running = false;
-        try {
-            thread.join();
-        } catch (InterruptedException e) {
-            thread.interrupt();
-        }
-    }
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Graphics2D gfx = (Graphics2D) g;
-        gfx.setRenderingHint(
-                RenderingHints.KEY_ANTIALIASING,
-                RenderingHints.VALUE_ANTIALIAS_ON
-        );
-        // Clear screen
-        gfx.setColor(Constants.BACKGROUND_COLOR);
-        gfx.fillRect(0, 0, getWidth(), getHeight());
-        // Render next frame
-        gfx.setColor(Constants.BORDER_COLOR);
-        gfx.setStroke(new BasicStroke(1));
-        quadTree.drawNodes(gfx);
-        for (Rectangle object : allObjects) {
-            object.draw(gfx);
-        }
-    }
-
     private void update() {
         handleCollisions();
         quadTree.clear();
@@ -107,21 +78,36 @@ public class ActionPanel extends JPanel implements Runnable {
             quadTree.insert(rect);
         }
         if (addingObject) {
-            Rectangle newObject = new Rectangle(
-                    randomGenerator.nextInt(Constants.SCREEN_X - Constants.OBJECT_SIZE),
-                    randomGenerator.nextInt(Constants.SCREEN_X - Constants.OBJECT_SIZE),
-                    Constants.OBJECT_SIZE,
-                    Constants.OBJECT_SIZE
-            );
-            newObject.setDirection(randomGenerator.nextInt(8));
-            allObjects.add(newObject);
+            createObject();
             addingObject = false;
         }
         if (removingObject) {
-            if (allObjects.size() > 0) {
-                allObjects.remove(allObjects.size() - 1);
-            }
+            removeObject();
             removingObject = false;
+        }
+    }
+
+    private void createObject() {
+        Rectangle newObject = new Rectangle(
+            randomGenerator.nextInt(Constants.SCREEN_X - Constants.OBJECT_SIZE - 8),
+            randomGenerator.nextInt(Constants.SCREEN_X - Constants.OBJECT_SIZE - 24),
+            Constants.OBJECT_SIZE,
+            Constants.OBJECT_SIZE
+        );
+        // Set random velocity
+        int velocityX = 0;
+        int velocityY = 0;
+        while (velocityX == 0 && velocityY == 0) {
+            velocityX = randomGenerator.nextInt(3) - 1;
+            velocityY = randomGenerator.nextInt(3) - 1;
+        }
+        newObject.changeVelocity(velocityX, velocityY);
+        allObjects.add(newObject);
+    }
+
+    private void removeObject() {
+        if (allObjects.size() > 0) {
+            allObjects.remove(allObjects.size() - 1);
         }
     }
 
@@ -133,12 +119,23 @@ public class ActionPanel extends JPanel implements Runnable {
 
             for (Rectangle b : returnObjects) {
                 if (a != null && b != null && a != b) {
-                    int aDir = a.getDirection();
-                    int bDir = b.getDirection();
-
                     if (intersection(a, b)) {
-                        a.setDirection(bDir);
-                        b.setDirection(aDir);
+                        if (a.x > b.x) {
+                            a.changeVelocity(2, 0);
+                            b.changeVelocity(-2, 0);
+                        }
+                        if (a.y > b.y) {
+                            a.changeVelocity(0, 2);
+                            b.changeVelocity(0, -2);
+                        }
+                        if (a.x + a.width < b.width) {
+                            a.changeVelocity(-2, 0);
+                            b.changeVelocity(2, 0);
+                        }
+                        if (a.y + a.height < b.height) {
+                            a.changeVelocity(0, -2);
+                            b.changeVelocity(0, 2);
+                        }
                     }
                 }
             }
@@ -146,66 +143,46 @@ public class ActionPanel extends JPanel implements Runnable {
     }
 
     private boolean intersection(Rectangle a, Rectangle b) {
-//        return !(a.getY() + a.getHeight() <= b.getY() ||
-//                a.getY() >= b.getY() + b.getHeight() ||
-//                a.getX() + a.getWidth() <= b.getX() ||
-//                a.getX() >= b.getX() + b.getWidth());
-        return (Math.abs(a.getX() - b.getX()) * 2 <= (a.getWidth() + b.getWidth())) &&
-                (Math.abs(a.getY() - b.getY()) * 2 <= (a.getHeight() + b.getHeight()));
+      return (Math.abs(a.x - b.x) * 2 <= (a.width + b.width)) &&
+             (Math.abs(a.y - b.y) * 2 <= (a.height + b.height));
     }
 
     private void checkBounds(Rectangle a, Rectangle b) {
-        if (a.getX() < b.getX()) {
-            switch (a.getDirection()) {
-                case Constants.DOWNLEFT:
-                    a.setDirection(Constants.DOWNRIGHT);
-                    break;
-                case Constants.LEFT:
-                    a.setDirection(Constants.RIGHT);
-                    break;
-                case Constants.UPLEFT:
-                    a.setDirection(Constants.UPRIGHT);
-                    break;
-            }
+        // Left wall collision
+        if (a.x < b.x) {
+            a.changeVelocity(2, 0);
         }
-        if (a.getY() < b.getY()) {
-            switch (a.getDirection()) {
-                case Constants.UPLEFT:
-                    a.setDirection(Constants.DOWNLEFT);
-                    break;
-                case Constants.UP:
-                    a.setDirection(Constants.DOWN);
-                    break;
-                case Constants.UPRIGHT:
-                    a.setDirection(Constants.DOWNRIGHT);
-                    break;
-            }
+        // Top wall collision
+        if (a.y < b.y) {
+            a.changeVelocity(0, 2);
         }
-        if (a.getX() + a.getWidth() > b.getWidth()) {
-            switch (a.getDirection()) {
-                case Constants.DOWNRIGHT:
-                    a.setDirection(Constants.DOWNLEFT);
-                    break;
-                case Constants.RIGHT:
-                    a.setDirection(Constants.LEFT);
-                    break;
-                case Constants.UPRIGHT:
-                    a.setDirection(Constants.UPLEFT);
-                    break;
-            }
+        // Right wall collision
+        if (a.x + a.width > b.width) {
+            a.changeVelocity(-2, 0);
         }
-        if (a.getY() + a.getHeight() > b.getHeight()) {
-            switch (a.getDirection()) {
-                case Constants.DOWNLEFT:
-                    a.setDirection(Constants.UPLEFT);
-                    break;
-                case Constants.DOWN:
-                    a.setDirection(Constants.UP);
-                    break;
-                case Constants.DOWNRIGHT:
-                    a.setDirection(Constants.UPRIGHT);
-                    break;
-            }
+        // Bottom wall collision
+        if (a.y + a.height > b.height) {
+            a.changeVelocity(0, -2);
+        }
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D gfx = (Graphics2D) g;
+        gfx.setRenderingHint(
+            RenderingHints.KEY_ANTIALIASING,
+            RenderingHints.VALUE_ANTIALIAS_ON
+        );
+        // Clear screen
+        gfx.setColor(Constants.BACKGROUND_COLOR);
+        gfx.fillRect(0, 0, getWidth(), getHeight());
+        // Render next frame
+        gfx.setColor(Constants.BORDER_COLOR);
+        gfx.setStroke(new BasicStroke(1));
+        quadTree.drawNodes(gfx);
+        for (Rectangle object : allObjects) {
+            object.draw(gfx);
         }
     }
 }

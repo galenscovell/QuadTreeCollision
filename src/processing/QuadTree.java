@@ -5,8 +5,8 @@ import java.util.*;
 import java.util.List;
 
 public class QuadTree {
-    private int maxObjects = 10;
-    private int max_levels = 5;
+    private int maxObjects = 6;
+    private int max_levels = 4;
     private int level;
     private List<Rectangle> objects;
     public Rectangle bounds;
@@ -67,7 +67,7 @@ public class QuadTree {
 
     public void drawNodes(Graphics2D gfx) {
         // Recursively draw each subnode border
-        gfx.drawRect(bounds.getX() + 1, bounds.getY() + 1, bounds.getWidth() - 1, bounds.getHeight() - 1);
+        gfx.drawRect(bounds.x + 1, bounds.y + 1, bounds.width - 1, bounds.height - 1);
         for (int i = 0; i < 4; i++) {
             if (nodes[i] != null) {
                 nodes[i].drawNodes(gfx);
@@ -77,10 +77,10 @@ public class QuadTree {
 
     private void split() {
         // Split node into 4 subnodes
-        int subWidth = bounds.getWidth() / 2;
-        int subHeight = bounds.getHeight() / 2;
-        int x = bounds.getX();
-        int y = bounds.getY();
+        int subWidth = bounds.width / 2;
+        int subHeight = bounds.height / 2;
+        int x = bounds.x;
+        int y = bounds.y;
         // topright
         nodes[0] = new QuadTree(level + 1, new Rectangle(x + subWidth, y, subWidth, subHeight));
         // topleft
@@ -95,19 +95,19 @@ public class QuadTree {
         // Determine which node object belongs to, -1 means object doesn't fit within
         // child node and is part of parent node.
         int index = -1;
-        double verticalMidpoint = bounds.getX() + (bounds.getWidth() / 2);
-        double horizontalMidpoint = bounds.getY() + (bounds.getHeight() / 2);
+        double verticalMidpoint = bounds.x + (bounds.width / 2);
+        double horizontalMidpoint = bounds.y + (bounds.height / 2);
 
-        boolean topQuadrant = (rect.getY() < horizontalMidpoint && rect.getY() + rect.getHeight() < horizontalMidpoint);
-        boolean bottomQuadrant = (rect.getY() > horizontalMidpoint);
+        boolean topQuadrant = (rect.y < horizontalMidpoint && rect.y + rect.height < horizontalMidpoint);
+        boolean bottomQuadrant = (rect.y > horizontalMidpoint);
 
-        if (rect.getX() < verticalMidpoint && rect.getX() + rect.getWidth() < verticalMidpoint) {
+        if (rect.x < verticalMidpoint && rect.x + rect.width < verticalMidpoint) {
             if (topQuadrant) {
                 index = 1;
             } else if (bottomQuadrant) {
                 index = 2;
             }
-        } else if (rect.getX() > verticalMidpoint) {
+        } else if (rect.x > verticalMidpoint) {
             if (topQuadrant) {
                 index = 0;
             } else if (bottomQuadrant) {
