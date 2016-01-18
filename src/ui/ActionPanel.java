@@ -14,6 +14,8 @@ public class ActionPanel extends JPanel implements Runnable {
     private Thread thread;
     private QuadTree quadTree;
     private List<Rectangle> allObjects;
+    private final Random randomGenerator;
+    private boolean addingObject, removingObject;
 
     private final int framerate = 60;
     private boolean running;
@@ -21,13 +23,22 @@ public class ActionPanel extends JPanel implements Runnable {
     public ActionPanel(int x, int y) {
         setPreferredSize(new Dimension(x, y));
         this.setFocusable(true);
+
+        this.randomGenerator = new Random();
         this.allObjects = new ArrayList<Rectangle>();
         this.quadTree = new QuadTree(0, new Rectangle(0, 0, x - 8, y - 24));
 
         this.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                allObjects.add(new Rectangle(0, 0, Constants.OBJECT_SIZE, Constants.OBJECT_SIZE));
+                if (SwingUtilities.isLeftMouseButton(e)) {
+                    removingObject = false;
+                    addingObject = true;
+                }
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    addingObject = false;
+                    removingObject = true;
+                }
             }
         });
     }
@@ -90,53 +101,57 @@ public class ActionPanel extends JPanel implements Runnable {
     private void update() {
         handleCollisions();
         quadTree.clear();
-        for (Rectangle object : allObjects) {
-            checkBounds(object, quadTree.bounds);
-            object.move();
-            quadTree.insert(object);
+        for (Rectangle rect : allObjects) {
+            checkBounds(rect, quadTree.bounds);
+            rect.move();
+            quadTree.insert(rect);
+        }
+        if (addingObject) {
+            Rectangle newObject = new Rectangle(
+                    randomGenerator.nextInt(Constants.SCREEN_X - Constants.OBJECT_SIZE),
+                    randomGenerator.nextInt(Constants.SCREEN_X - Constants.OBJECT_SIZE),
+                    Constants.OBJECT_SIZE,
+                    Constants.OBJECT_SIZE
+            );
+            newObject.setDirection(randomGenerator.nextInt(8));
+            allObjects.add(newObject);
+            addingObject = false;
+        }
+        if (removingObject) {
+            if (allObjects.size() > 0) {
+                allObjects.remove(allObjects.size() - 1);
+            }
+            removingObject = false;
         }
     }
 
     private void handleCollisions() {
         List<Rectangle> returnObjects = new ArrayList<Rectangle>();
-        for (Rectangle object : allObjects) {
+        for (Rectangle a : allObjects) {
             returnObjects.clear();
-            quadTree.retrieve(returnObjects, object);
+            quadTree.retrieve(returnObjects, a);
 
-            for (Rectangle returnObject : returnObjects) {
-                if (object == null || returnObject == null || object == returnObject) {
-                    continue;
+            for (Rectangle b : returnObjects) {
+                if (a != null && b != null && a != b) {
+                    int aDir = a.getDirection();
+                    int bDir = b.getDirection();
+
+                    if (intersection(a, b)) {
+                        a.setDirection(bDir);
+                        b.setDirection(aDir);
+                    }
                 }
-                checkCollision(object, returnObject);
             }
         }
     }
 
-    private void checkCollision(Rectangle a, Rectangle b) {
-        if (a == null || a == b) {
-            return;
-        } else {
-            int aDir = a.getDirection();
-            int bDir = b.getDirection();
-
-            if (pointInsideRect(a.getX(), a.getY(), b) ||
-                pointInsideRect(a.getX(), a.getY() + a.getHeight(), b) ||
-                pointInsideRect(a.getX() + a.getWidth(), a.getY(), b) ||
-                pointInsideRect(a.getX() + a.getWidth(), a.getY() + a.getHeight(), b)) {
-
-                a.setDirection(bDir);
-                b.setDirection(aDir);
-            }
-        }
-    }
-
-    private boolean pointInsideRect(int x, int y, Rectangle rect) {
-        if (x > rect.getX() && x < rect.getX() + rect.getWidth() &&
-            y > rect.getY() && y < rect.getY() + rect.getHeight()) {
-            return true;
-        } else {
-            return false;
-        }
+    private boolean intersection(Rectangle a, Rectangle b) {
+//        return !(a.getY() + a.getHeight() <= b.getY() ||
+//                a.getY() >= b.getY() + b.getHeight() ||
+//                a.getX() + a.getWidth() <= b.getX() ||
+//                a.getX() >= b.getX() + b.getWidth());
+        return (Math.abs(a.getX() - b.getX()) * 2 <= (a.getWidth() + b.getWidth())) &&
+                (Math.abs(a.getY() - b.getY()) * 2 <= (a.getHeight() + b.getHeight()));
     }
 
     private void checkBounds(Rectangle a, Rectangle b) {

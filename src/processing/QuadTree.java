@@ -98,21 +98,16 @@ public class QuadTree {
         double verticalMidpoint = bounds.getX() + (bounds.getWidth() / 2);
         double horizontalMidpoint = bounds.getY() + (bounds.getHeight() / 2);
 
-        // Object completely fits within top quadrants
         boolean topQuadrant = (rect.getY() < horizontalMidpoint && rect.getY() + rect.getHeight() < horizontalMidpoint);
-        // Object completely fits within bottom quadrants
         boolean bottomQuadrant = (rect.getY() > horizontalMidpoint);
 
-        // Object completely fits within left quadrants
         if (rect.getX() < verticalMidpoint && rect.getX() + rect.getWidth() < verticalMidpoint) {
             if (topQuadrant) {
                 index = 1;
             } else if (bottomQuadrant) {
                 index = 2;
             }
-        }
-        // Object completely fits within right quadrants
-        else if (rect.getX() > verticalMidpoint) {
+        } else if (rect.getX() > verticalMidpoint) {
             if (topQuadrant) {
                 index = 0;
             } else if (bottomQuadrant) {
